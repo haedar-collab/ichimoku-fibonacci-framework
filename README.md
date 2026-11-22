@@ -1,138 +1,103 @@
 # Tradesys Edge IchiFib
 
-Web app sistem trading crypto **Ichimoku Cloud + Fibonacci** untuk **Binance Spot (long-only)**.
-Satu file `index.html`: tanpa build, tanpa server, tanpa aplikasi berbayar. Data diambil langsung dari API publik Binance di browser.
+Web app sistem trading crypto **Ichimoku × Fibonacci** untuk **Binance Spot (long-only)**.
+Ichimoku dan Fibonacci dipakai sebagai **satu strategi kombo yang tidak terpisah**, mengikuti *Panduan Trading Crypto: Ichimoku + Fibonacci* (versi crypto dari panduan forex Didi Trader Klinik), dengan dasar dari `ichimoku-framework-kb` dan `fibonacci-framework-kb`.
 
-Strategi disusun dari dua knowledge base:
-- `ichimoku-framework-kb` (*Ichimoku Cloud Profit System*): urutan baca Kumo → ketebalan → Tenkan/Kijun → Chikou, serta setup TK Cross, Kumo Breakout, dan Trend Riding.
-- `fibonacci-framework-kb` (*The Art of Fibonacci Trading*): retracement 38.2/50/61.8, konfirmasi price action, skor konfluensi ≥ 3/5, RR minimal 1:2, TP di extension.
+Satu file `index.html`: tanpa build, tanpa server, tanpa API key. Data dari API publik Binance di browser.
 
-> Aplikasi ini hanya memberi **sinyal dan alert**. Tidak ada order yang dikirim ke exchange dan tidak butuh API key Binance.
+> Aplikasi ini hanya memberi **sinyal dan alert**. Tidak ada order yang dikirim ke exchange.
 
 ---
 
-## Fitur
+## Sistem kombo (BAB 3 panduan)
 
-| Tab | Isi |
-|---|---|
-| **Dashboard** | BTC, Kumo BTC harian (risk-on/off), jumlah sinyal Ichimoku & Fibonacci, komposisi harga vs Kumo, chart dengan plan, **kartu Trading Plan**, checklist Ichimoku × Fibonacci (x/8), probabilitas historis, papan sinyal |
-| **Scanner** | Watchlist atau semua pair USDT (top N volume). Kolom: Kumo, TK, Chikou, HTF, kedalaman Fib, sinyal, skor, entry/SL/TP. Filter: Sinyal / Ichimoku / Fibonacci / Di atas Kumo / Semua |
-| **Chart** | Candlestick + **Kumo diproyeksikan 26 bar ke depan**, Tenkan, Kijun, Chikou, level Fibonacci kaki naik terakhir (zona 38.2–61.8 diarsir, extension 127.2/161.8), volume, struktur SMC, pola candle. Panel *Bacaan Ichimoku* dan *Bacaan Fibonacci* |
-| **Backtest** | Kedua strategi, Ichimoku saja, atau Fibonacci saja; 1.000–3.000 bar; fee & slippage; hasil per setup |
-| **Risiko** | Kalkulator ukuran posisi + aturan portofolio |
-| **Alert** | Log sinyal, kirim sinyal tes / pesan tes ke Telegram, auto-scan 1 jam / 4 jam |
-| **Pengaturan** | Parameter Ichimoku, Fibonacci, filter, risiko, endpoint Binance, Telegram |
-
-Timeframe: **1H, 4H, 1D**. Bahasa **EN / ID**, tema **Terang / Gelap**. Harga live diperbarui tiap 15 detik.
-
----
-
-## Logika strategi
-
-### 1. Baca Kumo dulu (wajib, Bab 4 Ichimoku)
-Setting **9-26-52**, pergeseran 26 (sama seperti TradingView).
-
-| Cek | Bullish (boleh long) |
-|---|---|
-| Harga vs Kumo | Close di **atas** Kumo |
-| Ketebalan Kumo | Dicatat dalam × ATR (tebal = support kuat, tipis = rawan fakeout) |
-| Tenkan / Kijun | Tenkan di atas Kijun, Kijun naik |
-| Chikou | Close **bebas** di atas harga dan Kumo 26 bar lalu |
-| Kumo ke depan | Senkou A di atas Senkou B |
-| Jarak ke Kijun | ≤ 2,5 ATR (lebih dari itu = terlalu jauh, jangan kejar) |
-
-**Multi-timeframe** (1H→4H, 4H→1D, 1D→1W): setup Ichimoku wajib timeframe besar close **di atas** Kumo-nya; setup Fibonacci diblokir bila timeframe besar **di bawah** Kumo.
-**BTC harian** di bawah/di dalam Kumo → sinyal diberi label risk-off (skor −10), atau diblokir jika diatur.
-
-### 2. Setup Ichimoku
-| Setup | Pemicu | Stop loss |
+| # | Langkah | Aturan di aplikasi |
 |---|---|---|
-| **TK Cross** (Bab 6) | Tenkan memotong Kijun ke atas, **ditunda 1–2 candle**, harga tetap naik dan di atas Kumo, Kumo depan bullish, Kijun naik, Chikou bebas (kategori *Kuat*) | Di bawah Kijun − 0,3 ATR (pakai swing low 5 bar jika terlalu rapat) |
-| **Kumo Breakout** (Bab 7) | Close pertama di atas Kumo + candle berikutnya close lebih tinggi (**2 candle searah**), body breakout ≥ 0,5 ATR, Tenkan > Kijun, Kumo depan bullish, Chikou bebas | Di bawah Kumo − 0,3 ATR |
-| **Pullback Kijun** (Bab 8, trend riding) | ≥ 10 dari 12 close terakhir di atas Kumo, Kumo tidak tipis, Kijun naik; pullback menyentuh Tenkan/Kijun tanpa masuk jauh ke Kumo, lalu candle bullish memantul | Di bawah swing low 5 bar − 0,3 ATR |
+| 1 | **Filter pasar** | Altcoin: hanya long jika **BTC Daily close di atas awan**. BTC di dalam awan = tidak buka posisi altcoin baru. Volume 24 jam ≥ 50 juta USDT, spread ≤ 0,1% (bisa diubah). |
+| 2 | **Tren** | Bias Daily, setup H4. Close H4 **di atas awan** dan Daily **tidak di bawah** awannya. Di dalam awan = no trade. |
+| 3 | **Tarik Fibonacci** | Swing low → swing high terakhir yang **sudah terkonfirmasi** (pivot fraktal N = 5), wick ke wick, swing ≥ 3 × ATR(14). |
+| 4 | **Konfluensi** | Fib **61,8%** dalam ≤ 0,5 × ATR dari **tepi awan** (Span A/B) atau **Kijun datar**. Zona entry = **61,8–78,6%**. Close di bawah 78,6% membatalkan swing. |
+| 5 | **Konfirmasi** | Pada candle yang sudah close di zona: **Tenkan berbalik naik**, **close di atas Kijun**, **Chikou bebas** di atas harga & awan 26 bar lalu. Satu gagal = tunggu. |
+| 6 | **Stop loss** | Di bawah tepi bawah awan − 0,5 × ATR. |
+| 7 | **Target** | TP1 = swing high (0%), TP2 = 127,2%, TP3 opsional = 161,8% atau trailing Kijun. **Tolak jika R:R ke TP1 < 1:2 setelah fee.** |
 
-Semua setup dibatalkan jika jarak stop > 4 ATR.
-**Plan:** TP1 = 1R (ambil 1/3, stop ke entry) · TP2 = 2R (ambil 1/3) · sisa 1/3 trailing di bawah Kijun; keluar saat **close di bawah Kijun** (bisa diganti ke *TK cross bearish* di Pengaturan).
+**Tahap di papan kombo:**
+- **Setup** — konfluensi 61,8% × awan/Kijun ada, menunggu pullback ke zona.
+- **Di zona** — harga sudah di zona, menunggu konfirmasi Tenkan/Kijun/Chikou.
+- **Sinyal** — semua aturan lolos di candle yang sudah close → trading plan lengkap.
 
-### 3. Setup Fibonacci + price action
-1. **Tarik Fib** dari swing low ke swing high terakhir yang **sudah terkonfirmasi** (fractal 5 bar), kaki ≥ 3 ATR, dan swing high harus **higher high** (tidak menarik Fib di pasar sideways).
-2. Harga **menyentuh** 38.2 / 50 / 61.8% (78.6% opsional) lalu **close kembali di atasnya**.
-3. **Konfirmasi candle wajib:** pin bar / bullish engulfing, atau pin bar sebelumnya + close di atas high-nya.
-4. **Skor konfluensi ≥ 3 dari 5:** level Fib (+1), S/R (swing lama, Kijun, atau atap Kumo dalam 0,5 ATR) (+1), candle (+1), HTF searah (+1), volume ≥ rata-rata 20 bar (+1).
-5. Harga tidak di bawah Kumo; kaki naik batal jika ada close di bawah 78.6%.
-6. **Reward:risk ke extension 127.2% ≥ 1:2.**
+Untuk tahap Setup/Di zona aplikasi menampilkan **rencana bersyarat** (entry, SL, TP, R:R) dan apa yang belum terpenuhi.
 
-**Plan:** SL di bawah low pullback − 0,3 ATR · TP1 = swing high (ambil 50%, stop ke entry) · TP2 = 127.2% (ambil 30%) · TP3 = 161.8% (20%, trailing di bawah setiap swing low baru).
+**Cek sinyal kuat (4 konfirmasi BAB 1):** close di atas awan, Tenkan di atas Kijun, Chikou bebas, awan depan hijau — ditampilkan x/4.
 
-### 4. Skor 0–100
-- **Ichimoku:** posisi vs Kumo (15), Kumo depan (10), Tenkan > Kijun (10), kemiringan Kijun (10), Chikou (15), ketebalan Kumo (10), jarak sehat ke Kijun (15), HTF (10), volume (5).
-- **Fibonacci:** skor konfluensi × 12 (maks 60), bobot level (61.8 = 15, 50 = 11, 38.2 = 8), di atas Kumo (10), Fib berhimpit Kijun/Kumo (10), RR (5).
-- Jika beberapa setup muncul di satu pair, yang ditampilkan skor tertinggi.
-
-### 5. Checklist Ichimoku × Fibonacci (x/8)
-HTF di atas Kumo · harga di atas Kumo · Tenkan > Kijun & Kijun naik · Chikou bebas · Kumo depan bullish · pullback masuk zona 38.2–61.8 · level Fib berhimpit Kijun/Kumo/S-R · pola candle bullish. Informasi konfluensi, tidak mengubah sinyal.
-
-### 6. Probabilitas & keyakinan
-Dihitung dari mesin backtest yang sama pada 2.000 bar: % sinyal lampau yang mencapai TP1, TP2, atau kena SL dulu. Keyakinan = batas bawah Wilson 95% dari peluang TP1 (Tinggi ≥ 50%, Sedang ≥ 35%, sampel < 10 = "sampel sedikit"). Frekuensi masa lalu, **bukan jaminan**.
+### Dua set aturan
+| | Ketat (default) | Longgar |
+|---|---|---|
+| Sumber | Panduan apa adanya | Pelonggaran, **belum teruji** |
+| R:R minimum diukur ke | TP1 | TP2 (127,2%) |
+| Konfirmasi | Di candle yang close di zona | Boleh menyusul ≤ 6 bar setelah zona tersentuh |
+| Close di atas Kijun | Wajib | Tidak wajib |
 
 ---
 
-## Hasil uji (22 Nov 2026)
+## Money management (BAB 5)
 
-**Uji teknis (lulus):**
-- **Look-ahead:** 1.555 titik di 5 pair 4H diuji ulang dengan data masa depan dipotong (termasuk 29 sinyal): **0 selisih**. Swing Fibonacci baru dipakai setelah terkonfirmasi 5 bar.
-- **Invarian backtest:** 0 pelanggaran (urutan waktu, posisi tidak tumpang tindih, kerugian tidak melewati −1R kecuali gap).
-- **Browser:** dijalankan di Chrome (desktop & HP, terang & gelap, EN & ID) dengan data Binance live dan mode demo, tanpa error JavaScript.
+- **Qty = Modal × Risiko% ÷ (|Entry − SL| + (Entry + SL) × fee)**, fee = fee + slippage per sisi. Contoh panduan (5.000 USDT, risiko 1%, fee 0,10%, entry 93.800, SL 91.950) → **0,02456 BTC**; tanpa fee 0,02703 BTC.
+- Risiko 1% per trade (maks 2%), total terbuka ≤ 3%, maks 3 posisi, altcoin searah BTC = satu eksposur.
+- Partial **50% di TP1**, SL sisa ke **breakeven + fee**; sisa ke TP2 (atau 30% TP2 + 20% TP3, atau trailing Kijun).
+- **Batas rugi harian −3%** → aplikasi mengunci sampai 07:00 WIB (sinyal Telegram dijeda).
+- **Drawdown:** 10% → risiko 0,5% (otomatis), 20% → stop live, 30% → berhenti total.
+- **Weekend:** risiko dipotong 50% (bisa diganti ke *tidak entry*).
 
-**Uji strategi dengan data Binance asli** (10 pair besar: BTC, ETH, SOL, BNB, XRP, ADA, AVAX, LINK, DOGE, LTC; 3.000 bar; fee 0,1% + slippage 0,05% per sisi; risiko 1%/trade; filter MTF aktif):
+## Timing (BAB 4)
 
-| TF | Strategi | Trade | Win | Profit factor | Ekspektansi | t-stat |
-|---|---|---|---|---|---|---|
-| 4H | Ichimoku | 134 | 38% | 0,83 | −0,07R | −0,85 |
-| 4H | Fibonacci | 131 | 33% | 0,87 | −0,10R | −0,71 |
-| 1D | Ichimoku | 166 | 34% | 1,73 | +0,26R | 1,68 |
-| 1D | Fibonacci | 158 | 40% | 1,34 | +0,21R | 1,53 |
+Tab **Timing**: jam WIB sekarang, close H4 & Daily berikutnya, funding berikutnya, status weekend, jendela entry manual (07:00–23:00), jadwal rilis data AS/FOMC dari panduan, dan **profil volume & range per jam** yang dihitung dari data 1H Binance 3–12 bulan per koin.
 
-Per setup di 1D: Pullback Kijun 149 trade, +0,31R (t 1,78); Fib 38.2 44 trade, +0,49R (t 2,02); Fib 61.8 66 trade, +0,31R; Fib 50 48 trade, −0,18R. TK Cross dan Kumo Breakout jarang muncul (13 dan 4 trade di 1D), sampelnya terlalu kecil untuk dinilai.
+---
 
-**Kesimpulan:** di **4H** kedua strategi belum punya edge setelah biaya. Di **1D** keduanya positif, tetapi belum signifikan secara statistik (t < 2, kecuali Fib 38.2 yang tipis di atas 2 dengan 44 trade). Exit "TK cross bearish" memberi hasil hampir sama dengan exit "close di bawah Kijun". Pakai **1D** sebagai timeframe utama, forward test dengan nominal kecil, dan jangan jadikan sinyal otomatis.
+## Fitur lain
+Dashboard (KPI, chart, plan, checklist 10 butir dari lampiran panduan, probabilitas historis), Scanner (tahap, konfluensi, volume, filter BTC), Chart (Kumo diproyeksikan 26 bar, Tenkan/Kijun/Chikou, Fib dengan zona 61,8–78,6% dan titik tepi awan yang berhimpit), Backtest (preset ketat/longgar, Ichimoku 9/26/52/26 vs 20/60/120/30, filter BTC on/off, walk-forward 70/30, rugi beruntun terpanjang), Risiko, Alert Telegram, Pengaturan. Bahasa EN/ID, tema terang/gelap.
 
-**Batasan:**
-- Long-only: saat pasar di bawah Kumo (seperti saat diuji, 20 dari 20 pair watchlist di bawah Kumo 4H), aplikasi memang tidak memberi sinyal.
-- Auto-scan hanya berjalan selama halaman terbuka.
-- Backtest dan probabilitas tidak memakai filter BTC risk-off, hanya filter MTF per pair.
+---
+
+## Hasil uji (22 Nov 2026) — dibaca dulu
+
+**Teknis (lulus):**
+- **Look-ahead:** 5.742 titik di 6 pair H4 dihitung ulang dengan data masa depan dipotong (termasuk data Daily & BTC): **0 selisih**. Awan yang dibandingkan dengan harga di bar t dihitung dari bar t − 26; pivot baru dipakai setelah N bar; eksekusi di open candle berikutnya.
+- **Invarian backtest:** 0 pelanggaran.
+- **Browser:** live, demo, dan uji "mundur waktu" ke bar sinyal historis (BTC 4H, 4 Sep 2026) di desktop & HP, tanpa error.
+
+**Strategi** — 10 pair (BTC, ETH, SOL, BNB, XRP, ADA, AVAX, LINK, DOGE, LTC), **H4 3 tahun** (Sep 2023 – Nov 2026) dan **D1 hingga 8 tahun**, fee 0,1% + slippage 0,05% per sisi:
+
+| Varian | H4 trade | D1 trade |
+|---|---|---|
+| Ketat (panduan), 9/26/52/26 | **0** | **0** |
+| Ketat, 20/60/120/30 | 0 | 0 |
+| Ketat, tanpa filter BTC | 0 | 0 |
+| Longgar | 4 (−0,33R rata-rata) | 2 (−0,14R) |
+
+**Kenapa hampir tidak ada sinyal:** saat harga berada di 61,8–78,6%, harga hampir selalu **di bawah Kijun** (Kijun ≈ titik tengah 26 bar, dekat level 50%) dan **Chikou masih tertahan** harga 26 bar lalu (sekitar swing high), sehingga konfirmasi langkah 5 jarang lolos. Ketika lolos, **SL di bawah seluruh awan** membuat R:R ke TP1 rata-rata hanya ~0,5, jauh di bawah syarat 1:2.
+
+**Kesimpulan:** aturan panduan saat ini belum bisa divalidasi (target panduan ≥ 100 trade). Aplikasi tetap berguna sebagai **watchlist bertahap** (Setup → Di zona) dengan checklist dan rencana bersyarat, tapi parameter perlu direvisi lalu diuji ulang sebelum dipakai live. Mode longgar juga belum punya sampel yang cukup.
 
 ---
 
 ## Cara upload (GitHub Pages)
+1. Repo → **Settings → Pages** → *Deploy from a branch*, branch `main`, folder `/ (root)` → **Save**.
+2. Buka `https://haedar-collab.github.io/ichimoku-fibonacci-framework/`.
+3. Di HP: Chrome → **⋮ → Add to Home screen**.
 
-1. Login ke GitHub → **New repository**, misalnya `ichimoku-fibonacci-framework`, set **Public**.
-2. **Add file → Upload files**: upload `index.html` dan `README.md` → **Commit changes**.
-3. **Settings → Pages** → Source *Deploy from a branch*, branch `main`, folder `/ (root)` → **Save**.
-4. Tunggu 1–2 menit, buka `https://<username>.github.io/ichimoku-fibonacci-framework/`.
-5. Di HP: buka di Chrome → menu **⋮ → Add to Home screen**.
-
-Pengaturan, alert, dan token disimpan dengan prefix `tsif_` di localStorage, jadi tidak bentrok dengan Tradesys Edge Dual di domain `haedar-collab.github.io` yang sama.
-
----
+Data aplikasi disimpan dengan prefix `tsif_` di localStorage.
 
 ## Setup Telegram
+1. **@BotFather** → `/newbot` → salin token. Kirim pesan ke bot, buka `https://api.telegram.org/bot<TOKEN>/getUpdates`, salin chat ID.
+2. **Pengaturan → Data dan Telegram**: isi token & chat ID, centang *Kirim sinyal live baru* (opsional: *Kirim juga setup yang masuk zona*).
+3. Tab **Alert** → *Kirim pesan tes* / *Kirim sinyal tes*.
 
-1. Chat **@BotFather** → `/newbot` → salin **bot token**.
-2. Kirim pesan ke bot, buka `https://api.telegram.org/bot<TOKEN>/getUpdates`, salin `"chat":{"id": ...}`.
-3. **Pengaturan → Data dan Telegram**: isi token & chat ID, centang *Kirim sinyal live baru ke Telegram*, **Simpan dan scan ulang**.
-4. Tab **Alert**: *Kirim pesan tes* dan *Kirim sinyal tes*.
+Token hanya disimpan di browser. Untuk API key exchange (jika nanti dipakai): tanpa izin withdraw, whitelist IP.
 
-Pesan berisi entry, SL, TP1–TP3 dengan persen, ukuran posisi, plan manajemen, bacaan Ichimoku (Kumo, TK, Chikou, Kijun), level Fib, skor konfluensi, checklist, dan probabilitas historis.
+## Struktur kode
+- `ENGINE-START … ENGINE-END`: indikator, `ichiCore()`, `pivots()`, `ichiAt()`, `fibAt()`, `comboCore()` (7 langkah kombo), `evalAt()`, `backtest()` (sizing dengan fee, partial 50%, BE + fee, walk-forward), `htfStates()`.
+- Data: `getKlines()` (hanya candle close), `attach()` (Daily & filter BTC), `universe()` (volume 24 jam, stablecoin dikeluarkan).
 
-**Keamanan:** token hanya di localStorage browser, tidak ikut ter-upload. Jangan menulis token di `index.html`.
-
----
-
-## Struktur kode (`index.html`)
-
-- `ENGINE-START … ENGINE-END`: indikator, `ichiCore()` (Tenkan, Kijun, Senkou A/B, Kumo), `pivots()` (swing terkonfirmasi), `ichiAt()`, `fibAt()`, `evalAt()` (semua setup), `backtest()`, `htfStates()`, SMC & pola candle, data demo. Bisa dipakai ulang di Node.js untuk scheduler.
-- Data layer: `api()`, `getKlines()` (hanya candle yang sudah close), `universe()` (stablecoin & leveraged token dikeluarkan).
-- UI: render tiap tab, chart SVG, kalkulator risiko, alert, pengaturan.
-
-*Bukan nasihat keuangan. Uji setiap strategi dengan data historis dan forward test dengan nominal kecil sebelum dipakai dengan modal sungguhan.*
+*Bukan nasihat keuangan. Ikuti tahapan validasi di panduan (backtest ≥ 3 tahun, walk-forward, forward test 4–8 minggu, live dengan risiko 0,25–0,5% dulu).*
