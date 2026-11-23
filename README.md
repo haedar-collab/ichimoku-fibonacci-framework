@@ -55,6 +55,22 @@ Tab **Timing**: jam WIB sekarang, close H4 & Daily berikutnya, funding berikutny
 
 ---
 
+## WebSocket (data real-time)
+
+Aplikasi membuka **satu sambungan WebSocket** ke Binance (`wss://data-stream.binance.vision`, cadangan `wss://stream.binance.com:9443`; untuk endpoint Binance.US memakai `wss://stream.binance.us:9443`). Lewat sambungan itu Binance mengirim data sendiri setiap ada perubahan:
+
+| Stream | Dipakai untuk |
+|---|---|
+| `<pair>@miniTicker` untuk BTC dan semua pair hasil scan | Harga live di header, papan, plan, garis *Harga sekarang* di chart, status entry (di zona / jangan kejar / batal) |
+| `btcusdt@kline_<TF scan>` | Mendeteksi **candle close**. Saat candle close, aplikasi otomatis scan ulang ±4 detik kemudian, jadi sinyal dan alert Telegram keluar tepat setelah close (selama halaman terbuka) |
+| `<pair>@kline_<TF>` untuk pair di dashboard dan tab Chart | **Candle yang sedang berjalan** digambar putus-putus di chart; chart dimuat ulang otomatis saat candle itu close |
+
+- Status di header: **Live · WebSocket** (titik hijau berdenyut). Saat putus: *menyambung ulang* dengan jeda bertahap 1 → 2 → 4 … maks 60 detik; selama itu harga kembali diambil lewat REST tiap 15 detik.
+- Binance memutus sambungan setiap 24 jam; aplikasi menyambung ulang otomatis. Jika 60 detik tidak ada data, sambungan dibuka ulang.
+- Hanya data pasar publik: tidak butuh API key, tidak ada order.
+- Bisa dimatikan di **Pengaturan → Data dan Telegram** (*WebSocket* dan *Scan otomatis saat candle close*).
+- Sinyal tetap hanya dihitung dari **candle yang sudah close**; candle berjalan hanya tampilan.
+
 ## Fitur lain
 Dashboard (KPI, chart, plan, checklist 10 butir dari lampiran panduan, probabilitas historis), Scanner (tahap, konfluensi, volume, filter BTC), Chart (Kumo diproyeksikan 26 bar, Tenkan/Kijun/Chikou, Fib dengan zona 61,8–78,6% dan titik tepi awan yang berhimpit), Backtest (preset ketat/longgar, Ichimoku 9/26/52/26 vs 20/60/120/30, filter BTC on/off, walk-forward 70/30, rugi beruntun terpanjang), Risiko, Alert Telegram, Pengaturan. Bahasa EN/ID, tema terang/gelap.
 

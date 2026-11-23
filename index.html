@@ -32,6 +32,9 @@ header{border-bottom:1px solid var(--rule);background:var(--bg);position:sticky;
 .status{font-size:13px;color:var(--mute);display:flex;gap:6px;align-items:center}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
 .dot.live{background:var(--tp)}
+.dot.ws{box-shadow:0 0 0 3px color-mix(in srgb,var(--tp) 30%,transparent);animation:wsp 2s ease-in-out infinite}
+@keyframes wsp{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--tp) 10%,transparent)}}
+@media (prefers-reduced-motion:reduce){.dot.ws{animation:none}}
 h2{font-size:clamp(20px,2.4vw,26px);line-height:1.15;letter-spacing:-.01em;margin:0 0 4px;text-wrap:balance}
 h3{font-size:16px;margin:0 0 10px}
 button,select,input{font:inherit;font-size:16px;color:var(--ink)}
@@ -356,6 +359,8 @@ td small{font-size:12px;opacity:.85;margin-left:2px}
       <label><span data-i="cf_chat"></span><input id="k_tgChat" autocomplete="off" placeholder="123456789"></label>
       <label class="cb"><input id="k_tgOn" type="checkbox"><span data-i="cf_tgon"></span></label>
       <label class="cb"><input id="k_tgZone" type="checkbox"><span data-i="cf_tgzone"></span></label>
+      <label class="cb"><input id="k_wsOn" type="checkbox"><span data-i="cf_wsOn"></span></label>
+      <label class="cb"><input id="k_wsScan" type="checkbox"><span data-i="cf_wsScan"></span></label>
     </div><p class="note" data-i="cf_tgnote"></p></fieldset>
     <div class="bar-row"><button class="pri" type="submit" data-i="save"></button><button type="button" id="cfgReset" data-i="reset"></button><span id="cfgMsg" class="note"></span></div>
   </form>
@@ -516,7 +521,7 @@ function demoBars(sym,tf,n,now){const r=rng(hashStr(sym+tf)),ms=TFMS[tf]||TFMS['
 const U=x=>String(x||'').toUpperCase();
 const T={
 en:{sub:'Ichimoku × Fibonacci combo · Binance spot · long only',scan:'Scan now',n_dashboard:'Dashboard',n_scanner:'Scanner',n_chart:'Chart',n_timing:'Timing',n_backtest:'Backtest',n_risk:'Risk',n_alerts:'Alerts',n_config:'Settings',th_light:'Light',th_dark:'Dark',on:'On',off:'Off',
- st_live:'Live · Binance',st_demo:'Demo data · Binance unreachable',scanned:'scanned',scanning:'Scanning',connecting:'Connecting to Binance…',scan_failed:'Scan failed',
+ st_live:'Live · Binance',st_ws:'Live · WebSocket',st_rest:'Live · REST (WebSocket off, polling 15 s)',st_wsre:'Live · WebSocket reconnecting…',st_demo:'Demo data · Binance unreachable',stream:'streaming',close_scan:tf=>`${U(tf)} candle closed: scanning`,scanned:'scanned',scanning:'Scanning',connecting:'Connecting to Binance…',scan_failed:'Scan failed',
  find:(s,z,u,tf)=>s?`${s} entry signal${s>1?'s':''} on ${U(tf)} · ${z} in the zone · ${u} waiting for a pullback`:z||u?`No entry yet on ${U(tf)}: ${z} in the zone waiting for confirmation, ${u} waiting for a pullback`:`No setups on ${U(tf)}: stand aside, hold USDT`,
  sub_on:'BTC closes above its daily Kumo: altcoin longs are allowed.',sub_in:'BTC closes inside its daily Kumo: no new altcoin positions.',sub_off:'BTC closes below its daily Kumo: spot stays in USDT.',demo_note:' Demo data, not the market.',
  k_btcd:'BTC daily Kumo',riskon:'Allowed',riskoff:'Blocked',k_sig:'Entry signals',k_zone:'In zone',k_setup:'Setups',k_mix:'Price vs Kumo',d1:'24h',pairs:'pairs',k_next:'Next candle close',
@@ -540,7 +545,7 @@ en:{sub:'Ichimoku × Fibonacci combo · Binance spot · long only',scan:'Scan no
  ck:['BTC daily supports the trade (altcoins)','Coin passes the volume and spread filter','Setup candle closes above the Kumo; daily not against it','Fib 61.8% within the tolerance of a Kumo edge or flat Kijun','Tenkan turns up, close above Kijun, Chikou free (closed candle)','Not within 30 min of US data / FOMC; no full-risk weekend entry','Size from the 1% rule incl. fees; total open risk ≤ 3%','R:R to TP1 ≥ 1:2 after fees','SL and TP placed on the exchange before leaving','Calm, daily −3% loss limit not hit'],
  f4:['Close above the Kumo','Tenkan above Kijun','Chikou above price and Kumo 26 bars back','Future Kumo green (Span A > B)'],
  pa_bull_engulf:'Bullish engulfing',pa_bear_engulf:'Bearish engulfing',pa_hammer:'Pin bar (hammer)',pa_shooting:'Pin bar (shooting star)',pa_inside:'Inside bar',pa_doji:'Doji',
- ly_ichi:'Ichimoku',ly_fib:'Fibonacci',ly_smc:'Structure',ly_ob:'Order blocks',ly_fvg:'FVG',ly_pa:'Candles',k_kumo:'Kumo',k_vol:'Volume',free:'free',blocked:'blocked',thick:'thick',thin:'thin',
+ ly_ichi:'Ichimoku',ly_fib:'Fibonacci',ly_smc:'Structure',ly_ob:'Order blocks',ly_fvg:'FVG',ly_pa:'Candles',k_kumo:'Kumo',k_forming:'Forming candle (live)',k_vol:'Volume',free:'free',blocked:'blocked',thick:'thick',thin:'thin',
  i_t:'Ichimoku reading',f_t:'Fibonacci × Kumo',i_pos:'Price vs Kumo',i_thick:'Kumo thickness',i_tk:'Tenkan / Kijun',i_slope:'Kijun slope',i_ch:'Chikou',i_fut:'Future Kumo',i_ext:'Distance to Kijun',i_btc:'BTC daily filter',
  f_leg:'Swing (wick to wick)',f_depth:'Deepest pullback',f_edge:'Nearest edge to 61.8%',f_dist:'Distance',f_zone:'Entry zone',f_ext:'Extensions',f_none:'No valid swing: price is still making new highs, the last leg is under 3 ATR, or a close went below 78.6%.',ok:'OK',far:'too far',
  guide_t:'How the combo works',
@@ -574,10 +579,10 @@ en:{sub:'Ichimoku × Fibonacci combo · Binance spot · long only',scan:'Scan no
  cf_ichiPreset:'Preset',cf_shift:'Displacement',cf_fibPivot:'Swing pivot N (bars each side)',cf_fibMinLeg:'Min swing (× ATR)',cf_fibLook:'Max swing length (bars)',
  cf_watch:'Watchlist (comma separated)',cf_topN:'Top pairs in all-USDT mode',cf_minVol:'Min 24h volume (USDT)',cf_maxSpread:'Max spread %',
  cf_risk:'Money management',cf_equity:'Equity (USDT)',cf_riskp:'Risk per trade %',cf_maxAlloc:'Max allocation per position %',cf_maxPos:'Max active positions',cf_maxHeat:'Max total open risk %',cf_fee:'Fee per side %',cf_slip:'Slippage per side %',
- cf_data:'Data and Telegram',cf_endpoint:'Binance endpoint',cf_token:'Telegram bot token',cf_chat:'Telegram chat ID',cf_tgon:'Send new live signals to Telegram',cf_tgzone:'Also send new in-zone setups',cf_tgnote:'The token is stored only in this browser (localStorage). Use a bot made for alerts only.',
+ cf_data:'Data and Telegram',cf_endpoint:'Binance endpoint',cf_token:'Telegram bot token',cf_chat:'Telegram chat ID',cf_tgon:'Send new live signals to Telegram',cf_tgzone:'Also send new in-zone setups',cf_wsOn:'WebSocket: live prices and the forming candle pushed by Binance',cf_wsScan:'Scan automatically the moment a candle closes (WebSocket, while the page is open)',cf_tgnote:'The token is stored only in this browser (localStorage). Use a bot made for alerts only.',
  save:'Save and rescan',reset:'Reset defaults',saved:'Saved.',restored:'Defaults restored; save to rescan.',too_small:'Size is below the Binance minimum; raise equity or risk.'},
 id:{sub:'Kombo Ichimoku × Fibonacci · Binance spot · hanya long',scan:'Scan sekarang',n_dashboard:'Dashboard',n_scanner:'Scanner',n_chart:'Chart',n_timing:'Timing',n_backtest:'Backtest',n_risk:'Risiko',n_alerts:'Alert',n_config:'Pengaturan',th_light:'Terang',th_dark:'Gelap',on:'Aktif',off:'Mati',
- st_live:'Live · Binance',st_demo:'Data demo · Binance tidak terjangkau',scanned:'scan',scanning:'Memindai',connecting:'Menghubungkan ke Binance…',scan_failed:'Scan gagal',
+ st_live:'Live · Binance',st_ws:'Live · WebSocket',st_rest:'Live · REST (WebSocket mati, polling 15 dtk)',st_wsre:'Live · WebSocket menyambung ulang…',st_demo:'Data demo · Binance tidak terjangkau',stream:'streaming',close_scan:tf=>`Candle ${U(tf)} close: memindai`,scanned:'scan',scanning:'Memindai',connecting:'Menghubungkan ke Binance…',scan_failed:'Scan gagal',
  find:(s,z,u,tf)=>s?`${s} sinyal entry di ${U(tf)} · ${z} di zona · ${u} menunggu pullback`:z||u?`Belum ada entry di ${U(tf)}: ${z} di zona menunggu konfirmasi, ${u} menunggu pullback`:`Belum ada setup di ${U(tf)}: tunggu, pegang USDT`,
  sub_on:'BTC close di atas Kumo harian: long altcoin diizinkan.',sub_in:'BTC close di dalam Kumo harian: tidak buka posisi altcoin baru.',sub_off:'BTC close di bawah Kumo harian: spot pegang USDT.',demo_note:' Data demo, bukan harga pasar.',
  k_btcd:'Kumo BTC harian',riskon:'Diizinkan',riskoff:'Diblokir',k_sig:'Sinyal entry',k_zone:'Di zona',k_setup:'Setup',k_mix:'Harga vs Kumo',d1:'24 jam',pairs:'pair',k_next:'Close candle berikutnya',
@@ -601,7 +606,7 @@ id:{sub:'Kombo Ichimoku × Fibonacci · Binance spot · hanya long',scan:'Scan s
  ck:['BTC Daily mendukung arah trade (altcoin)','Koin lolos filter volume & spread','Close candle setup di atas awan; Daily tidak bertentangan','Fib 61,8% dalam toleransi dari tepi awan atau Kijun datar','Tenkan naik, close di atas Kijun, Chikou bebas (candle sudah close)','Tidak dalam 30 menit sekitar rilis data AS/FOMC; bukan entry weekend risiko penuh','Qty dari aturan 1% termasuk fee; risiko total terbuka ≤ 3%','R:R ke TP1 ≥ 1:2 setelah fee','SL dan TP terpasang di exchange sebelum ditinggal','Kondisi tenang, belum kena batas rugi harian −3%'],
  f4:['Close di atas awan','Tenkan di atas Kijun','Chikou di atas harga & awan 26 bar lalu','Awan ke depan hijau (Span A > B)'],
  pa_bull_engulf:'Bullish engulfing',pa_bear_engulf:'Bearish engulfing',pa_hammer:'Pin bar (hammer)',pa_shooting:'Pin bar (shooting star)',pa_inside:'Inside bar',pa_doji:'Doji',
- ly_ichi:'Ichimoku',ly_fib:'Fibonacci',ly_smc:'Struktur',ly_ob:'Order block',ly_fvg:'FVG',ly_pa:'Candle',k_kumo:'Kumo',k_vol:'Volume',free:'bebas',blocked:'tersangkut',thick:'tebal',thin:'tipis',
+ ly_ichi:'Ichimoku',ly_fib:'Fibonacci',ly_smc:'Struktur',ly_ob:'Order block',ly_fvg:'FVG',ly_pa:'Candle',k_kumo:'Kumo',k_forming:'Candle berjalan (live)',k_vol:'Volume',free:'bebas',blocked:'tersangkut',thick:'tebal',thin:'tipis',
  i_t:'Bacaan Ichimoku',f_t:'Fibonacci × Kumo',i_pos:'Harga vs Kumo',i_thick:'Ketebalan Kumo',i_tk:'Tenkan / Kijun',i_slope:'Kemiringan Kijun',i_ch:'Chikou',i_fut:'Kumo ke depan',i_ext:'Jarak ke Kijun',i_btc:'Filter BTC harian',
  f_leg:'Swing (wick ke wick)',f_depth:'Pullback terdalam',f_edge:'Tepi terdekat ke 61,8%',f_dist:'Jarak',f_zone:'Zona entry',f_ext:'Ekstensi',f_none:'Belum ada swing valid: harga masih membuat high baru, kaki terakhir di bawah 3 ATR, atau sudah ada close di bawah 78,6%.',ok:'OK',far:'terlalu jauh',
  guide_t:'Cara kerja sistem kombo',
@@ -635,12 +640,12 @@ id:{sub:'Kombo Ichimoku × Fibonacci · Binance spot · hanya long',scan:'Scan s
  cf_ichiPreset:'Preset',cf_shift:'Pergeseran',cf_fibPivot:'Pivot swing N (bar tiap sisi)',cf_fibMinLeg:'Swing minimal (× ATR)',cf_fibLook:'Panjang swing maks (bar)',
  cf_watch:'Watchlist (pisahkan dengan koma)',cf_topN:'Jumlah pair teratas (mode semua USDT)',cf_minVol:'Volume 24 jam minimum (USDT)',cf_maxSpread:'Spread maks %',
  cf_risk:'Money management',cf_equity:'Modal (USDT)',cf_riskp:'Risiko per trade %',cf_maxAlloc:'Alokasi maks per posisi %',cf_maxPos:'Maks posisi aktif',cf_maxHeat:'Risiko total terbuka maks %',cf_fee:'Fee per sisi %',cf_slip:'Slippage per sisi %',
- cf_data:'Data dan Telegram',cf_endpoint:'Endpoint Binance',cf_token:'Bot token Telegram',cf_chat:'Chat ID Telegram',cf_tgon:'Kirim sinyal live baru ke Telegram',cf_tgzone:'Kirim juga setup baru yang masuk zona',cf_tgnote:'Token hanya disimpan di browser ini (localStorage). Pakai bot khusus untuk alert.',
+ cf_data:'Data dan Telegram',cf_endpoint:'Endpoint Binance',cf_token:'Bot token Telegram',cf_chat:'Chat ID Telegram',cf_tgon:'Kirim sinyal live baru ke Telegram',cf_tgzone:'Kirim juga setup baru yang masuk zona',cf_wsOn:'WebSocket: harga live dan candle berjalan dikirim langsung oleh Binance',cf_wsScan:'Scan otomatis tepat saat candle close (WebSocket, selama halaman terbuka)',cf_tgnote:'Token hanya disimpan di browser ini (localStorage). Pakai bot khusus untuk alert.',
  save:'Simpan dan scan ulang',reset:'Kembalikan default',saved:'Tersimpan.',restored:'Default dipulihkan; simpan untuk scan ulang.',too_small:'Ukuran di bawah minimum Binance; naikkan modal atau risiko.'}};
 
 const DEF={tf:'4h',mode:'watch',watch:'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,LINKUSDT,DOTUSDT,NEARUSDT,SUIUSDT,DOGEUSDT,TRXUSDT,LTCUSDT,APTUSDT',topN:40,minVol:50000000,maxSpread:0.1,
  tenkan:9,kijun:26,senkou:52,shift:26,slopeBars:5,preset:'strict',confTol:0.5,zoneTop:0.618,slBuf:0.5,minRR:2,maxExt:3,runner:'tp2',weekend:'half',btcFilter:true,mtf:true,
- fibPivot:5,fibMinLeg:3,fibLook:120,equity:5000,risk:1,maxAlloc:100,maxPos:3,maxHeat:3,fee:0.1,slip:0.05,auto:0,endpoint:'https://data-api.binance.vision',tgOn:false,tgZone:false,tgToken:'',tgChat:''};
+ fibPivot:5,fibMinLeg:3,fibLook:120,equity:5000,risk:1,maxAlloc:100,maxPos:3,maxHeat:3,fee:0.1,slip:0.05,auto:0,endpoint:'https://data-api.binance.vision',tgOn:false,tgZone:false,wsOn:true,wsScan:true,tgToken:'',tgChat:''};
 const LS={get(k,d){try{const v=localStorage.getItem('tsif_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('tsif_'+k,JSON.stringify(v))}catch(e){}}};
 let cfg={...DEF,...LS.get('cfg',{})};cfg.zoneTop=+cfg.zoneTop;
 let lang=LS.get('lang','id');
@@ -665,7 +670,7 @@ async function loadFilters(syms){const need=syms.filter(x=>!S.filt[x]);if(!live|
 
 /* layers + key */
 const LAYERS=`<button data-ly="ichi"><i style="background:var(--tp);opacity:.35;height:10px"></i><span data-i="ly_ichi"></span></button><button data-ly="fib"><i style="background:var(--mr)"></i><span data-i="ly_fib"></span></button><button data-ly="smc"><i style="background:var(--ink)"></i><span data-i="ly_smc"></span></button><button data-ly="ob"><i style="background:var(--tp);opacity:.4;height:10px"></i><span data-i="ly_ob"></span></button><button data-ly="fvg"><i style="background:var(--tf);opacity:.4;height:10px"></i><span data-i="ly_fvg"></span></button><button data-ly="pa"><b style="color:var(--tp)">E</b><b style="color:var(--sl)">P</b> <span data-i="ly_pa"></span></button>`;
-const KEY=`<span><i style="background:var(--tf)"></i>Tenkan</span><span><i style="background:var(--ink);height:2px"></i>Kijun</span><span><i style="background:var(--warn)"></i>Chikou</span><span><i style="background:var(--tp);opacity:.35;height:8px"></i><span data-i="k_kumo"></span></span><span><i style="background:var(--mr)"></i>Fib</span><span><i style="background:var(--mr);opacity:.3;height:8px"></i>61.8–78.6%</span><span><i style="background:var(--tp)"></i>TP</span><span><i style="background:var(--sl)"></i>SL</span><span><i style="background:var(--tf);height:8px;border-radius:2px"></i><span data-i="now_price"></span></span>`;
+const KEY=`<span><i style="background:var(--tf)"></i>Tenkan</span><span><i style="background:var(--ink);height:2px"></i>Kijun</span><span><i style="background:var(--warn)"></i>Chikou</span><span><i style="background:var(--tp);opacity:.35;height:8px"></i><span data-i="k_kumo"></span></span><span><i style="background:var(--mr)"></i>Fib</span><span><i style="background:var(--mr);opacity:.3;height:8px"></i>61.8–78.6%</span><span><i style="background:var(--tp)"></i>TP</span><span><i style="background:var(--sl)"></i>SL</span><span><i style="background:var(--tf);height:8px;border-radius:2px"></i><span data-i="now_price"></span></span><span><i style="border:1px dashed var(--tp);height:8px;background:transparent"></i><span data-i="k_forming"></span></span>`;
 for(const el of document.querySelectorAll('.lyr'))el.innerHTML=LAYERS;
 for(const el of document.querySelectorAll('.panel>.key'))el.innerHTML=KEY;
 function paintLayers(){for(const b of document.querySelectorAll('.lyr button'))b.classList.toggle('on',!!S.layers[b.dataset.ly])}
@@ -684,8 +689,35 @@ function pstatus(s,p){if(!isFinite(p))return null;if(p<=s.stop)return['bad','st_
 function paintPrices(){for(const el of document.querySelectorAll('[data-px]'))el.textContent=fmtP(nowPx(el.dataset.px));
  for(const el of document.querySelectorAll('[data-pxe]'))el.textContent=pct(+el.dataset.pxe/nowPx(el.dataset.s)-1,2);
  for(const el of document.querySelectorAll('[data-pst]')){const r=S.results.find(x=>x.sym===el.dataset.pst);const st=r&&r.sig?pstatus(r.sig,nowPx(r.sym)):null;el.className='stt '+(st?st[0]:'');el.textContent=st?t(st[1]):''}
- const pa=$('pxAge');if(pa)pa.textContent=live&&S.pxAt?t('upd')+' '+hm(S.pxAt):t('last_close');
+ const pa=$('pxAge');if(pa)pa.textContent=live&&S.pxAt?(WS.open?t('stream')+' · ':'')+t('upd')+' '+hm(S.pxAt):t('last_close');
  for(const [el,d] of figs)drawChart(el,d)}
+
+/* ---------- WebSocket: Binance pushes prices and candles over one open connection ---------- */
+const WS={sock:null,url:'',open:false,retry:0,alt:0,timer:null,lastMsg:0,paintT:0,closed:{}};
+S.forming={};S.chartKey=null;
+const wsBases=()=>/binance\.us/.test(cfg.endpoint)?['wss://stream.binance.us:9443']:['wss://data-stream.binance.vision','wss://stream.binance.com:9443'];
+function wsStreams(){const ok=x=>/^[A-Z0-9]{2,20}USDT$/.test(x);
+ const syms=[...new Set(['BTCUSDT'].concat(S.results.map(r=>r.sym),S.dSym?[S.dSym]:[],S.chartKey?[S.chartKey[0]]:[]))].filter(ok).slice(0,300);
+ const kl=new Set(['btcusdt@kline_'+S.scanTf]);if(S.dSym&&ok(S.dSym))kl.add(S.dSym.toLowerCase()+'@kline_'+S.scanTf);if(S.chartKey&&ok(S.chartKey[0]))kl.add(S.chartKey[0].toLowerCase()+'@kline_'+S.chartKey[1]);
+ return syms.map(x=>x.toLowerCase()+'@miniTicker').concat([...kl])}
+function schedulePaint(){if(WS.paintT)return;WS.paintT=setTimeout(()=>{WS.paintT=0;if(!document.hidden)paintPrices()},1000)}
+function wsClose(){clearTimeout(WS.timer);if(WS.sock){const s=WS.sock;WS.sock=null;try{s.close()}catch(e){}}if(WS.open){WS.open=false;setStatus()}}
+function wsRetry(){clearTimeout(WS.timer);WS.timer=setTimeout(wsSync,Math.min(60000,1000*2**WS.retry++))}
+function onKlineClose(sym,tf){
+ if(sym==='BTCUSDT'&&tf===S.scanTf&&cfg.wsScan){setStatus(t('close_scan',tf));setTimeout(()=>{if(!S.busy)scan()},4000)}
+ if(S.chartKey&&S.chartKey[0]===sym&&S.chartKey[1]===tf)setTimeout(()=>{delete S.cache[sym+tf];if(location.hash==='#chart')loadChart()},4000)}
+function wsSync(){
+ if(!cfg.wsOn||!live||typeof WebSocket==='undefined'){wsClose();return}
+ const b=wsBases(),url=b[WS.alt%b.length]+'/stream?streams='+wsStreams().join('/');
+ if(WS.sock&&WS.url===url&&WS.sock.readyState<=1)return;
+ wsClose();WS.url=url;let s;try{s=new WebSocket(url)}catch(e){WS.alt++;wsRetry();return}WS.sock=s;let opened=false;
+ s.onopen=()=>{if(WS.sock!==s)return;opened=true;WS.open=true;WS.retry=0;WS.lastMsg=Date.now();setStatus()};
+ s.onmessage=e=>{if(WS.sock!==s)return;WS.lastMsg=Date.now();let m;try{m=JSON.parse(e.data)}catch(_){return}const d=m&&m.data;if(!d)return;
+  if(d.e==='24hrMiniTicker'){S.px[d.s]=+d.c;S.pxAt=Date.now();schedulePaint()}
+  else if(d.e==='kline'){const k=d.k,key=d.s+k.i;S.forming[key]={t:k.t,o:+k.o,h:+k.h,l:+k.l,c:+k.c,v:+k.q,x:k.x};S.px[d.s]=+k.c;S.pxAt=Date.now();schedulePaint();
+   if(k.x&&WS.closed[key]!==k.t){WS.closed[key]=k.t;onKlineClose(d.s,k.i)}}};
+ s.onerror=()=>{if(!opened)WS.alt++};
+ s.onclose=()=>{if(WS.sock!==s)return;WS.sock=null;WS.open=false;setStatus();if(cfg.wsOn&&live)wsRetry()}}
 
 /* ---------- data ---------- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -764,7 +796,7 @@ async function sendTg(html){if(!cfg.tgToken||!cfg.tgChat)throw new Error(t('tg_n
 function flash(btn,txt,ms=2200){const o=btn.dataset.i?t(btn.dataset.i):btn.textContent;btn.textContent=txt;setTimeout(()=>{btn.textContent=btn.dataset.i?t(btn.dataset.i):o},ms)}
 
 /* ---------- scan ---------- */
-function setStatus(msg){$('dot').className='dot'+(live?' live':'');$('stxt').textContent=msg||(live?t('st_live'):t('st_demo'))+(S.lastScan?' · '+t('scanned')+' '+hm(S.lastScan)+' WIB':'')}
+function setStatus(msg){$('dot').className='dot'+(live?' live':'')+(live&&WS.open?' ws':'');$('stxt').textContent=msg||(live?(!cfg.wsOn?t('st_rest'):WS.open?t('st_ws'):t('st_wsre')):t('st_demo'))+(S.lastScan?' · '+t('scanned')+' '+hm(S.lastScan)+' WIB':'')}
 const STG={signal:4,zone:3,rr:2,setup:2,weekend:2};
 async function scan(){
  if(S.busy){S.again=true;return}S.busy=true;S.again=false;const C={...cfg};S.errs=[];$('scanBtn').disabled=true;const prog=$('prog');prog.style.width='4%';setStatus(t('scanning')+' '+U(C.tf)+'…');
@@ -792,7 +824,7 @@ async function scan(){
   const send=fresh.filter(a=>!a.zone||C.tgZone);
   if(live&&C.tgOn&&send.length&&!lockState().on)(async()=>{for(const a of send.slice(0,8)){try{await sendTg(planText(a.sym,a.tf,a.sig,false,a.prob,a.ex,a.zone));await sleep(1100)}catch(e){setStatus('Telegram: '+e.message);break}}})();
   const top=S.results.find(r=>r.stage);if(!S.dSym||!S.results.some(r=>r.sym===S.dSym&&r.stage))S.dSym=top?top.sym:'BTCUSDT';
-  setStatus();renderAll();refreshPrices()
+  setStatus();renderAll();if(!WS.open)refreshPrices();wsSync()
  }catch(e){setStatus(t('scan_failed')+': '+(e.message||e))}
  finally{S.busy=false;$('scanBtn').disabled=false;setTimeout(()=>prog.style.width='0',600);if(S.again){S.again=false;setTimeout(scan,50)}}}
 
@@ -803,8 +835,8 @@ function plot(el,data){if(data.I&&!data.smc)data.smc=smc(data.I);if(data.I&&data
 function drawChart(el,d){
  const s=el.querySelector('svg'),W=el.clientWidth,H=el.clientHeight;if(!W||!H||!d)return;
  if(d.kind==='eq')return drawEq(s,W,H,d);if(d.kind==='hour')return drawHour(s,W,H,d);
- const I=d.I,LY=S.layers,D=I.D,fwd=LY.ichi?D:0,cnt=Math.min(I.n,W<520?70:W<800?110:150),a0=I.n-cnt,L=6,R=d.sig&&W>=520?168:W<520?92:108,T0=10,B=22,ph=Math.round((H-T0-B)*0.8),aTop=T0+ph+12,ah=H-B-aTop;
- let lo=Infinity,hi=-Infinity;for(let i=a0;i<I.n;i++){lo=Math.min(lo,I.l[i]);hi=Math.max(hi,I.h[i])}
+ const I=d.I,LY=S.layers,D=I.D,fm0=d.sym&&d.tf?S.forming[d.sym+d.tf]:null,fm=fm0&&fm0.t>I.b[I.n-1].t?fm0:null,fwd=LY.ichi?D:fm?1:0,cnt=Math.min(I.n,W<520?70:W<800?110:150),a0=I.n-cnt,L=6,R=d.sig&&W>=520?168:W<520?92:108,T0=10,B=22,ph=Math.round((H-T0-B)*0.8),aTop=T0+ph+12,ah=H-B-aTop;
+ let lo=Infinity,hi=-Infinity;for(let i=a0;i<I.n;i++){lo=Math.min(lo,I.l[i]);hi=Math.max(hi,I.h[i])}if(fm){lo=Math.min(lo,fm.l);hi=Math.max(hi,fm.h)}
  if(LY.ichi)for(let p=a0;p<I.n+fwd;p++){const k=p-D;if(k<0||k>=I.n||isNaN(I.sb[k]))continue;lo=Math.min(lo,I.sa[k],I.sb[k]);hi=Math.max(hi,I.sa[k],I.sb[k])}
  const sg=d.sig||d.wplan,np=d.sym?nowPx(d.sym):NaN;if(sg){lo=Math.min(lo,sg.stop);hi=Math.max(hi,sg.tp2)}if(isFinite(np)){lo=Math.min(lo,np);hi=Math.max(hi,np)}const pad=(hi-lo)*0.04;lo-=pad;hi+=pad;
  const cw=(W-L-R)/(cnt+fwd),x=i=>L+(i-a0+0.5)*cw,y=p=>T0+(hi-p)/(hi-lo)*ph,bw=Math.max(1,cw*0.62),xr=W-R,inR=p=>p>=lo&&p<=hi;
@@ -828,6 +860,7 @@ function drawChart(el,d){
  if(Z&&LY.fvg)for(const f of Z.fvg.filter(f=>!f.fill&&f.i>=a0&&f.top>=lo&&f.bot<=hi).slice(-3)){const x1=x(f.i)-cw/2,col=f.dir>0?'var(--tf)':'var(--mr)';g+=`<rect x="${x1}" y="${y(f.top)}" width="${Math.max(0,xr-x1)}" height="${Math.max(1,y(f.bot)-y(f.top))}" fill="${col}" opacity=".12"/><text x="${x1+3}" y="${(y(f.top)+y(f.bot))/2+4}" style="fill:${col}">FVG</text>`}
  for(let i=a0;i<I.n;i++){const up=I.c[i]>=I.o[i],xx=x(i),yo=y(I.o[i]),yc=y(I.c[i]);
   g+=`<line x1="${xx}" x2="${xx}" y1="${y(I.h[i])}" y2="${y(I.l[i])}" stroke="var(--ink)"/><rect x="${xx-bw/2}" y="${Math.min(yo,yc)}" width="${bw}" height="${Math.max(1,Math.abs(yc-yo))}" fill="${up?'var(--bg)':'var(--ink)'}" stroke="var(--ink)"/>`}
+ if(fm){const xx=x(I.n),yo=y(fm.o),yc=y(fm.c),col=fm.c>=fm.o?'var(--tp)':'var(--sl)';g+=`<line x1="${xx}" x2="${xx}" y1="${y(fm.h)}" y2="${y(fm.l)}" stroke="${col}" stroke-dasharray="2 2"/><rect x="${xx-bw/2}" y="${Math.min(yo,yc)}" width="${bw}" height="${Math.max(1,Math.abs(yc-yo))}" fill="${col}" fill-opacity=".25" stroke="${col}" stroke-dasharray="3 2"/>`}
  if(Z&&LY.smc){for(const e of Z.ev.filter(e=>e.to>=a0).slice(-4)){const x1=x(Math.max(e.from,a0)),x2=x(e.to),yy=y(e.p),col=e.dir>0?'var(--tp)':'var(--sl)';g+=`<line x1="${x1}" x2="${x2}" y1="${yy}" y2="${yy}" stroke="${col}" stroke-width="1.3" stroke-dasharray="${e.type==='CHoCH'?'5 3':''}"/><text x="${Math.max(L+24,(x1+x2)/2)}" y="${yy+(e.dir>0?-5:14)}" text-anchor="middle" style="fill:${col};font-weight:600">${e.type}</text>`}
   for(const q of Z.sw.filter(q=>q.i>=a0&&q.lb).slice(-6))g+=`<text x="${x(q.i)}" y="${q.hi?y(q.p)-7:y(q.p)+17}" text-anchor="middle" style="font-weight:600">${q.lb}</text>`}
  const mk=new Set((d.marks||[]).map(m=>m.i));if(LY.pa)for(let i=Math.max(a0,I.n-12,1);i<I.n;i++){const q=paAt(I,i);if(!q||!q.d||mk.has(i))continue;const lb=q.k.includes('engulf')?'E':'P';g+=q.d>0?`<text x="${x(i)}" y="${y(I.l[i])+30}" text-anchor="middle" style="fill:var(--tp);font-weight:700">${lb}</text>`:`<text x="${x(i)}" y="${y(I.h[i])-9}" text-anchor="middle" style="fill:var(--sl);font-weight:700">${lb}</text>`}
@@ -839,10 +872,10 @@ function drawChart(el,d){
   const ys=lv.map(v=>({v,yy:y(v[0])})).sort((a,b)=>a.yy-b.yy);for(let k=1;k<ys.length;k++)ys[k].ly=Math.max(ys[k].yy,(ys[k-1].ly??ys[k-1].yy)+15);ys[0].ly=ys[0].yy;
   for(const o of ys){const [p,lab,col]=o.v;const isNow=lab==='NOW';if(!isNow)g+=`<line x1="${x0}" x2="${xr}" y1="${o.yy}" y2="${o.yy}" stroke="${col}" stroke-dasharray="${lab==='Entry'?(dim?'6 3':''):'4 3'}" stroke-width="${lab==='Entry'?1.5:1.2}" opacity="${dim?.7:1}"/>`;
    g+=isNow?`<rect x="${xr+2}" y="${o.ly-8.5}" width="${R-4}" height="17" rx="3" fill="var(--tf)"/><text x="${xr+6}" y="${o.ly+4.5}" style="fill:var(--bg);stroke:none;font-weight:600">${fmtP(p)}</text>`:`<text x="${xr+6}" y="${o.ly+4}" style="fill:${col};font-weight:600">${lab} ${fmtP(p)}${sg&&lab!=='Entry'&&W>=520?' '+pct(p/sg.entry-1):''}</text>`}}
- let vmax=0;for(let i=a0;i<I.n;i++)vmax=Math.max(vmax,I.v[i]);
+ let vmax=0;for(let i=a0;i<I.n;i++)vmax=Math.max(vmax,I.v[i]);if(fm)vmax=Math.max(vmax,fm.v);
  g+=`<line x1="${L}" x2="${xr}" y1="${aTop}" y2="${aTop}" stroke="var(--rule)"/>`;
  if(vmax>0){const vy=v=>aTop+ah-(v/vmax)*(ah-4);for(let i=a0;i<I.n;i++){const up=I.c[i]>=I.o[i];g+=`<rect x="${x(i)-bw/2}" y="${vy(I.v[i])}" width="${bw}" height="${Math.max(0,aTop+ah-vy(I.v[i]))}" fill="${up?'var(--tf)':'var(--mute)'}" opacity="${up?.45:.35}"/>`}
-  let vp='';for(let i=a0;i<I.n;i++){if(isNaN(I.vs[i]))continue;vp+=(vp?'L':'M')+x(i).toFixed(1)+','+vy(I.vs[i]).toFixed(1)}g+=`<path d="${vp}" fill="none" stroke="var(--ink)" stroke-width="1.1"/><text x="${L+4}" y="${aTop+14}">${t('k_vol')} · ${(I.v[I.n-1]/I.vs[I.n-1]).toFixed(1)}× avg 20</text>`}
+  let vp='';for(let i=a0;i<I.n;i++){if(isNaN(I.vs[i]))continue;vp+=(vp?'L':'M')+x(i).toFixed(1)+','+vy(I.vs[i]).toFixed(1)}if(fm)g+=`<rect x="${x(I.n)-bw/2}" y="${vy(fm.v)}" width="${bw}" height="${Math.max(0,aTop+ah-vy(fm.v))}" fill="none" stroke="var(--tf)" stroke-dasharray="2 2"/>`;g+=`<path d="${vp}" fill="none" stroke="var(--ink)" stroke-width="1.1"/><text x="${L+4}" y="${aTop+14}">${t('k_vol')} · ${(I.v[I.n-1]/I.vs[I.n-1]).toFixed(1)}× avg 20</text>`}
  const tk=W<520?3:5;for(let k=0;k<tk;k++){const i=a0+Math.round((cnt-1)*(k+0.5)/tk);g+=`<text x="${x(i)}" y="${H-5}" text-anchor="middle">${new Date(I.b[i].t).toLocaleDateString(lang==='id'?'id-ID':'en-GB',{day:'2-digit',month:'short'})}</text>`}
  s.innerHTML=g}
 function drawEq(s,W,H,d){const c=d.curve,L=8,R=64,T0=12,B=22;if(c.length<2){s.innerHTML='';return}
@@ -886,7 +919,7 @@ function infoSpans(sym,r,tf){const X=r.X,F=r.F&&!r.F.broken?r.F:null;return`<spa
 function showDash(sym){const I=S.cache[sym+S.scanTf];if(!I)return;S.dSym=sym;const r=S.results.find(x=>x.sym===sym);
  for(const tr of document.querySelectorAll('#board tr[data-sym]'))tr.classList.toggle('sel',tr.dataset.sym===sym);
  $('dSym').textContent=sym+' · '+U(S.scanTf);$('dInfo').innerHTML=r?dec(infoSpans(sym,r,S.scanTf)):'';
- plot($('dFig'),{I,sym,sig:r&&r.sig,wplan:r&&!r.sig&&r.stage?r.wplan:null,conf:r&&r.conf,marks:marksFor(I,I.n-150)});renderPlan(r)}
+ plot($('dFig'),{I,sym,tf:S.scanTf,sig:r&&r.sig,wplan:r&&!r.sig&&r.stage?r.wplan:null,conf:r&&r.conf,marks:marksFor(I,I.n-150)});renderPlan(r);wsSync()}
 function htfName(v){return v===1?t('rg_Above'):v===-1?t('rg_Below'):v===0?t('rg_Inside'):t('na')}
 const htfCell=v=>`<span class="${v===1?'h1':v===-1?'h-1':v===0?'h0':'hna'}">${htfName(v)}</span>`;
 function probBlock(pr){if(!pr||!pr.n)return`<div class="prob"><small style="color:var(--mute)">${t('prob_t')}: ${t('prob_na')}</small></div>`;
@@ -927,7 +960,7 @@ async function loadChart(){
   const ev=evalAt(I,I.n-1,cfg,null),m=marksFor(I,I.n-300);if(!ev)throw new Error('history');
   if(live&&!S.px[sym])api('/api/v3/ticker/price',{symbol:sym}).then(a=>{if(a&&a.price){S.px[sym]=+a.price;paintPrices()}}).catch(()=>{});
   $('cTitle').textContent=sym+' · '+U(tf);$('cInfo').innerHTML=dec(infoSpans(sym,ev,tf))+`<span>ATR ${fmtP(ev.atr)}</span>`;
-  plot($('cFig'),{I,sym,sig:ev.sig,wplan:!ev.sig&&ev.stage?ev.wplan:null,conf:ev.conf,marks:m});readBlocks(ev);
+  S.chartKey=[sym,tf];wsSync();plot($('cFig'),{I,sym,tf,sig:ev.sig,wplan:!ev.sig&&ev.stage?ev.wplan:null,conf:ev.conf,marks:m});readBlocks(ev);
   $('cHist').innerHTML=`<thead><tr><th>${t('c_bar')}</th><th>Setup</th><th class="n">${t('c_score')}</th><th class="n">Entry</th><th class="n">SL</th><th class="n">TP1</th><th class="n">TP2</th><th class="n">${t('c_rr')}</th></tr></thead><tbody>`+(m.length?m.slice().reverse().slice(0,15).map(x=>`<tr><td>${tstr(x.t)}</td><td>${dec(x.sig.setup)}</td><td class="n">${x.sig.score}</td><td class="n">${fmtP(x.sig.entry)}</td><td class="n sl">${fmtP(x.sig.stop)}</td><td class="n tp">${fmtP(x.sig.tp1)}</td><td class="n tp">${fmtP(x.sig.tp2)}</td><td class="n">${x.sig.rr1.toFixed(2)}</td></tr>`).join(''):`<tr><td colspan="8"><div class="empty">${t('nohist')}</div></td></tr>`)+'</tbody>'
  }catch(e){$('cTitle').textContent=sym+' · '+(e.message||'error')}}
 /* timing */
@@ -1014,9 +1047,10 @@ $('aClear').onclick=()=>{S.alerts=[];LS.set('alerts',[]);renderAlerts()};
 $('aAuto').onchange=e=>{cfg.auto=+e.target.value;LS.set('cfg',cfg)};
 $('cfgForm').onsubmit=e=>{e.preventDefault();for(const k in DEF){const el=$('k_'+k);if(!el)continue;cfg[k]=el.type==='checkbox'?el.checked:typeof DEF[k]==='number'?(el.value===''||isNaN(+el.value)?DEF[k]:+el.value):el.value.trim()}
  for(const k of ['tenkan','kijun','senkou','shift','fibPivot','fibLook'])cfg[k]=Math.max(2,Math.round(cfg[k]));cfg.risk=Math.min(2,Math.max(0.1,cfg.risk));
- LS.set('cfg',cfg);S.cache={};figs.delete($('cFig'));$('cfgMsg').textContent=t('saved');fillCfg();calc();probeLive().then(scan)};
+ LS.set('cfg',cfg);S.cache={};figs.delete($('cFig'));wsClose();$('cfgMsg').textContent=t('saved');fillCfg();calc();probeLive().then(scan)};
 $('cfgReset').onclick=()=>{const keep={tgToken:cfg.tgToken,tgChat:cfg.tgChat,tgOn:cfg.tgOn};cfg={...DEF,...keep};LS.set('cfg',cfg);fillCfg();$('cfgMsg').textContent=t('restored')};
-setInterval(refreshPrices,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshPrices()});
+setInterval(()=>{if(!WS.open)refreshPrices()},15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(!WS.open)refreshPrices();wsSync()}});
+setInterval(()=>{if(WS.open&&Date.now()-WS.lastMsg>60000){wsClose();wsSync()}},20000);
 setInterval(()=>{if(cfg.auto>0&&!S.busy&&Date.now()-S.lastScan>=cfg.auto*36e5)scan();if(location.hash==='#timing')renderTiming()},60000);
 
 fillCfg();applyLang();applyTheme();paintLayers();route();
